@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'dart:math';
 void main() {
   runApp(ElectronicsHelperApp());
 }
@@ -369,74 +369,242 @@ class _OhmsLawCalculatorState extends State<OhmsLawCalculator> {
 }
 
 // Unit Conversion Tool
-class UnitConverter extends StatelessWidget {
+class UnitConverter extends StatefulWidget {
+@override
+_UnitConverterState createState() => _UnitConverterState();
+}
+
+class _UnitConverterState extends State<UnitConverter> {
+  final _valueController = TextEditingController();
+  double? _result;
+
+  final List<String> _units = ['Volts', 'Amps', 'Ohms', 'Watts'];
+  String _fromUnit = 'Volts';
+  String _toUnit = 'Amps';
+
+  void _convert() {
+    double? value = double.tryParse(_valueController.text);
+    if (value != null) {
+      double conversionFactor = _getConversionFactor(_fromUnit, _toUnit, value);
+      setState(() {
+        _result = conversionFactor;
+      });
+    }
+  }
+
+  double _getConversionFactor(String fromUnit, String toUnit, double value) {
+    if (fromUnit == 'Volts' && toUnit == 'Amps') {
+      // Calculate current (I) = Voltage (V) / Resistance (R)
+      return value / 1; // For simplicity, assuming resistance of 1 Ohm
+    } else if (fromUnit == 'Amps' && toUnit == 'Volts') {
+      // Calculate voltage (V) = Current (I) * Resistance (R)
+      return value * 1; // Assuming resistance of 1 Ohm
+    } else if (fromUnit == 'Volts' && toUnit == 'Watts') {
+      // Calculate power (W) = Voltage (V) * Current (I)
+      return value * 1; // Assuming current of 1 Amp
+    } else if (fromUnit == 'Watts' && toUnit == 'Volts') {
+      // Calculate voltage (V) = Power (W) / Current (I)
+      return value / 1; // Assuming current of 1 Amp
+    } else if (fromUnit == 'Amps' && toUnit == 'Watts') {
+      // Calculate power (W) = Current (I) * Voltage (V)
+      return value * 1; // Assuming voltage of 1 Volt
+    } else if (fromUnit == 'Watts' && toUnit == 'Amps') {
+      // Calculate current (I) = Power (W) / Voltage (V)
+      return value / 1; // Assuming voltage of 1 Volt
+    } else if (fromUnit == 'Ohms' && toUnit == 'Volts') {
+      // Calculate voltage (V) = Current (I) * Resistance (R)
+      return value * 1; // Assuming current of 1 Amp
+    } else if (fromUnit == 'Volts' && toUnit == 'Ohms') {
+      // Calculate resistance (R) = Voltage (V) / Current (I)
+      return value / 1; // Assuming current of 1 Amp
+    } else {
+      return value; // If no conversion is applied, return the original value
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Unit Conversion Tool')),
-      body: Center(
-        child: Text('Unit Conversion Tool Coming Soon'),
-      ),
-    );
-  }
-}
-
-class PowerCalculator extends StatefulWidget {
-  @override
-  _PowerCalculatorState createState() => _PowerCalculatorState();
-}
-
-class _PowerCalculatorState extends State<PowerCalculator> {
-  final _voltageController = TextEditingController();
-  final _currentController = TextEditingController();
-
-  String _powerResult = '';
-
-  void _calculatePower() {
-    double voltage = double.tryParse(_voltageController.text) ?? 0;
-    double current = double.tryParse(_currentController.text) ?? 0;
-
-    setState(() {
-      double power = voltage * current;
-      _powerResult = 'Power: $power Watts';
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Power Calculator')),
+      appBar: AppBar(title: Text('Unit Converter')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
-              controller: _voltageController,
+              controller: _valueController,
               decoration: InputDecoration(
-                labelText: 'Voltage (V)',
+                labelText: 'Enter value to convert',
               ),
               keyboardType: TextInputType.number,
             ),
-            TextField(
-              controller: _currentController,
-              decoration: InputDecoration(
-                labelText: 'Current (A)',
-              ),
-              keyboardType: TextInputType.number,
+            SizedBox(height: 20),
+            DropdownButton<String>(
+              value: _fromUnit,
+              onChanged: (String? newValue) {
+                setState(() {
+                  _fromUnit = newValue!;
+                });
+              },
+              items: _units.map<DropdownMenuItem<String>>((String unit) {
+                return DropdownMenuItem<String>(
+                  value: unit,
+                  child: Text(unit),
+                );
+              }).toList(),
+            ),
+            DropdownButton<String>(
+              value: _toUnit,
+              onChanged: (String? newValue) {
+                setState(() {
+                  _toUnit = newValue!;
+                });
+              },
+              items: _units.map<DropdownMenuItem<String>>((String unit) {
+                return DropdownMenuItem<String>(
+                  value: unit,
+                  child: Text(unit),
+                );
+              }).toList(),
             ),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _calculatePower,
-              child: Text('Calculate Power'),
+              onPressed: _convert,
+              child: Text('Convert'),
             ),
             SizedBox(height: 20),
             Text(
-              _powerResult,
+              'Result: ${_result ?? "Invalid input"}',
               style: TextStyle(fontSize: 20),
             ),
           ],
         ),
       ),
     );
+  }
+}
+
+
+class PowerCalculator extends StatefulWidget {
+  @override
+  _PowerCalculatorState createState() => _PowerCalculatorState();
+}
+
+
+class _PowerCalculatorState extends State<PowerCalculator> {
+  final TextEditingController _voltageController = TextEditingController();
+  final TextEditingController _currentController = TextEditingController();
+  final TextEditingController _resistanceController = TextEditingController();
+  String _result = '';
+  String _selectedFormula = 'P = V × I';
+
+  void _calculatePower() {
+    final double? voltage = double.tryParse(_voltageController.text);
+    final double? current = double.tryParse(_currentController.text);
+    final double? resistance = double.tryParse(_resistanceController.text);
+
+    double? power;
+
+    switch (_selectedFormula) {
+      case 'P = V × I':
+        if (voltage != null && current != null) {
+          power = voltage * current;
+        }
+        break;
+      case 'P = I² × R':
+        if (current != null && resistance != null) {
+          power = pow(current, 2) * resistance;
+        }
+        break;
+      case 'P = V² / R':
+        if (voltage != null && resistance != null) {
+          power = pow(voltage, 2) / resistance;
+        }
+        break;
+    }
+
+    setState(() {
+      if (power != null) {
+        _result = 'Power: ${power.toStringAsFixed(2)} W';
+      } else {
+        _result = 'Please enter valid inputs for the selected formula.';
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Electronics Power Calculator'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DropdownButton<String>(
+              value: _selectedFormula,
+              onChanged: (String? newValue) {
+                setState(() {
+                  _selectedFormula = newValue!;
+                });
+              },
+              items: <String>['P = V × I', 'P = I² × R', 'P = V² / R']
+                  .map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _voltageController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Voltage (V)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _currentController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Current (I)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _resistanceController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Resistance (R)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _calculatePower,
+              child: const Text('Calculate Power'),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _result,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _voltageController.dispose();
+    _currentController.dispose();
+    _resistanceController.dispose();
+    super.dispose();
   }
 }
